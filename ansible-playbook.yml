@@ -1,28 +1,86 @@
 ---
-- hosts: webservers
+- name: Install and configure Apache web server
+  hosts: webservers
   become: yes
-
   tasks:
-    - name: Ensure Apache is installed
+  
+    # Update the package manager
+    - name: Ensure system is up to date
+      apt:
+        update_cache: yes
+        upgrade: dist
+      when: ansible_os_family == 'Debian'
+  
+    # Install Apache
+    - name: Install Apache web server
       apt:
         name: apache2
         state: present
-        update_cache: yes
-
-    - name: Ensure Apache is enabled and running
+      when: ansible_os_family == 'Debian'
+    
+    - name: Install Apache web server
+      yum:
+        name: httpd
+        state: present
+      when: ansible_os_family == 'RedHat'
+  
+    # Start and enable Apache service
+    - name: Start and enable Apache
       service:
-        name: apache2
-        enabled: yes
+        name: "{{ ansible_os_family == 'Debian' | ternary('apache2', 'httpd') }}"
         state: started
-
-    - name: Allow HTTP and HTTPS through the firewall
+        enabled: yes
+  
+    # Ensure firewall is installed
+    - name: Ensure UFW is installed (Debian-based systems)
+      apt:
+        name: ufw
+        state: present
+      when: ansible_os_family == 'Debian'
+    
+    - name: Ensure firewalld is installed (RedHat-based systems)
+      yum:
+        name: firewalld
+        state: present
+      when: ansible_os_family == 'RedHat'
+  
+    # Open firewall ports for HTTP/HTTPS traffic
+    - name: Open firewall ports (Debian-based)
       ufw:
         rule: allow
-        name: "{{ item }}"
+        port: "{{ item }}"
+        proto: tcp
       loop:
-        - "Apache"
-        - "Apache Secure"
-
-    - name: Enable UFW firewall
-      ufw:
+        - 80
+        - 443
+      when: ansible_os_family == 'Debian'
+    
+    - name: Open firewall ports (RedHat-based)
+      firewalld:
+        port: "{{ item }}/tcp"
+        permanent: yes
         state: enabled
+      loop:
+        - 80
+        - 443
+      when: ansible_os_family == 'RedHat'
+  
+    - name: Reload firewall (Debian-based)
+      command: ufw reload
+      when: ansible_os_family == 'Debian'
+    
+    - name: Reload firewall (RedHat-based)
+      firewalld:
+        state: reloaded
+      when: ansible_os_family == 'RedHat'
+
+    # Ensure Apache is running
+    - name: Check if Apache is running
+      shell: systemctl is-active {{ ansible_os_family == 'Debian' | ternary('apache2', 'httpd') }}
+      register: apache_status
+
+    - name: Fail if Apache is not running
+      fail:
+        msg: "Apache is not running!"
+      when: apache_status.stdout != 'active'
+
