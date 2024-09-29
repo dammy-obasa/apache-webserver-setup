@@ -1,0 +1,28 @@
+---
+- hosts: webservers
+  become: yes
+
+  tasks:
+    - name: Ensure Apache is installed
+      apt:
+        name: apache2
+        state: present
+        update_cache: yes
+
+    - name: Ensure Apache is enabled and running
+      service:
+        name: apache2
+        enabled: yes
+        state: started
+
+    - name: Allow HTTP and HTTPS through the firewall
+      ufw:
+        rule: allow
+        name: "{{ item }}"
+      loop:
+        - "Apache"
+        - "Apache Secure"
+
+    - name: Enable UFW firewall
+      ufw:
+        state: enabled
