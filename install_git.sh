@@ -18,3 +18,15 @@ else
 fi
 
 echo "Git installed successfully!"
+
+# Clone the repository
+git clone https://github.com/dammy-obasa/apache-webserver-setup.git
+
+# Change into the repository directory
+cd apache-webserver-setup || exit
+
+# Make the install script executable
+chmod +x install_git.sh
+
+# Run the install script
+./install_git.sh
