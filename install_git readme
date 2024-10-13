@@ -1,0 +1,5 @@
+wget https://raw.githubusercontent.com/dammy-obasa/apache-webserver-setup/main/install_git.sh -O install_git.sh
+
+chmod +x install_git.sh
+
+./install_git.sh
